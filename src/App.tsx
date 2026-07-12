@@ -602,7 +602,7 @@ export default function App() {
 
   const leaveRoom = async () => {
     await roomRef.current?.leave();
-    window.location.href = window.location.origin + window.location.pathname;
+    window.location.href = window.location.href.split('?')[0];
   }
 
   const startNewMeeting = () => joinMeeting(makeRoomId())
