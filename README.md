@@ -7,6 +7,10 @@ P2P Meet enables secure, end-to-end encrypted video calls without relying on cen
 
 ![P2P Meet](./scrn.webp)
 
+<a href="https://temokoki.github.io/P2P_Meet" target="_blank">
+  <img src="https://img.shields.io/badge/Test Here-Live Demo-blue?style=for-the-badge" alt="Live Demo" />
+</a>
+
 ## Features
 
 - Peer-to-peer video and audio communication
