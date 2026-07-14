@@ -19,6 +19,11 @@ P2P Meet enables secure, end-to-end encrypted video calls without relying on cen
 - Screen sharing capabilities
 - Audio activity indicators
 - Camera and microphone controls
+- Real-time camera background effects powered by [longpipe](https://longpipe.dev/):
+  - Background blur (low, medium, high)
+  - Custom image background
+  - Custom video background
+  - None (original feed)
 - Dark/Light theme toggle
 - Responsive design  
 
@@ -29,6 +34,7 @@ P2P Meet enables secure, end-to-end encrypted video calls without relying on cen
 - **Styling**: shadcn/ui — Tailwind CSS
 - **Icons**: Lucide React
 - **Peer-to-Peer**: Trystero
+- **Camera Effects**: longpipe for real-time background effects
 - **State Management**: React hooks (useState, useEffect, useRef)
 - **Linting**: Oxlint with TypeScript-aware rules
 
@@ -97,6 +103,7 @@ npm run preview
 - **Microphone**: Toggle mute/unmute
 - **Camera**: Turn video on/off
 - **Screen Share**: Share your entire screen or application window
+- **Camera Effects**: Apply a real-time background effect to your camera feed
 - **Leave**: Exit the meeting and return to the landing page
 - **Copy Link**: Copy the current meeting URL to share with others
 - **Theme**: Toggle between light and dark themes
