@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { joinRoom, selfId, type Room } from "trystero"
+import { EffectsPipeline } from "longpipe"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Separator } from "@/components/ui/separator"
@@ -21,6 +22,19 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Camera,
   CameraOff,
   Check,
@@ -32,6 +46,13 @@ import {
   MonitorUp,
   MonitorX,
   VideoOff,
+  Image,
+  ImageOff,
+  SquarePlay,
+  Ellipsis,
+  GripHorizontal,
+  Grip,
+  Ban,
 } from "lucide-react"
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -406,6 +427,7 @@ export default function App() {
   const [isScreenSharing, setIsScreenSharing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [mediaIssue, setMediaIssue] = useState<MediaIssue | null>(null)
+  const [cameraEffect, setCameraEffect] = useState("none")
 
   /* ── refs ── */
   const roomRef = useRef<Room | null>(null)
@@ -418,12 +440,29 @@ export default function App() {
   const autoJoinHandledRef = useRef(false)
   const screenShareCleanupRef = useRef<() => void>(() => { })
   const sendCamStateRef = useRef<((data: { isOn: boolean }, target?: string) => void) | null>(null)
+  const cameraEffectsRef = useRef<EffectsPipeline | null>(null)
+  const cameraEffectsImageInputRef = useRef<HTMLInputElement>(null);
+  const cameraEffectsVideoInputRef = useRef<HTMLInputElement>(null);
 
   const inMeeting = joinedRoomId !== null
 
   // Keep refs synced with state for use in callbacks
   isCameraOnRef.current = isCameraOn
   isScreenSharingRef.current = isScreenSharing
+
+  const handleCameraEffectsFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const fileUrl = URL.createObjectURL(file)
+
+      if (file.type.startsWith('image/'))
+        cameraEffectsRef.current?.setBackground({ image: fileUrl })
+      else if (file.type.startsWith('video/'))
+        cameraEffectsRef.current?.setBackground({ video: fileUrl })
+
+      event.target.value = ''
+    }
+  }
 
   /* ── tile helpers ── */
 
@@ -447,7 +486,10 @@ export default function App() {
 
   // Ensure local media stream exists when device access is not available initially
   const ensureLocalMediaStream = (): MediaStream => {
-    if (!localCameraStreamRef.current) localCameraStreamRef.current = new MediaStream()
+    if (!localCameraStreamRef.current) {
+      cameraEffectsRef.current = new EffectsPipeline(new MediaStream(), { background: 'none' })
+      localCameraStreamRef.current = cameraEffectsRef.current.stream
+    }
     return localCameraStreamRef.current
   }
 
@@ -460,8 +502,10 @@ export default function App() {
       audio: true,
       video: CAMERA_CONSTRAINTS,
     })
-    localCameraStreamRef.current = stream
-    return stream
+
+    cameraEffectsRef.current = new EffectsPipeline(stream, { background: 'none' })
+    localCameraStreamRef.current = cameraEffectsRef.current.stream
+    return localCameraStreamRef.current
   }
 
   // Request specific device (mic or camera)
@@ -939,10 +983,10 @@ export default function App() {
                     <TooltipTrigger
                       render={
                         <Button
-                          variant={isCameraOn ? "ghost" : "destructive"}
                           size="icon"
-                          onClick={() => toggleCamera()}
-                          disabled={isScreenSharing}
+                          variant={isCameraOn ? "ghost" : "destructive"}
+                          className={isScreenSharing ? "opacity-50" : ""}
+                          onClick={e => { isScreenSharing ? e.preventDefault() : toggleCamera() }}
                         />
                       }
                     >
@@ -956,6 +1000,75 @@ export default function App() {
                           : "Turn on camera"}
                     </TooltipContent>
                   </Tooltip>
+
+                  {/* Camera Effects */}
+                  <DropdownMenu>
+                    <Tooltip>
+                      <DropdownMenuTrigger
+                        render={
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                size="icon"
+                                variant={isCameraOn ? "ghost" : "destructive"}
+                                className={!isCameraOn ? "opacity-50" : ""}
+                                onClick={e => { if (!isCameraOn) e.preventDefault() }}
+                                onPointerDown={e => { if (!isCameraOn) e.preventDefault() }}
+                              />
+                            }
+                          >
+                            {isCameraOn ? (<Image className="size-4.5" />) : (<ImageOff className="size-4.5" />)}
+                          </TooltipTrigger>
+                        }
+                      />
+                      <TooltipContent>
+                        {isScreenSharing
+                          ? "Camera effects disabled while sharing screen"
+                          : isCameraOn
+                            ? "Camera effects"
+                            : "Camera effects disabled while camera is off"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent>
+                      <DropdownMenuRadioGroup value={cameraEffect} onValueChange={setCameraEffect}>
+                        <DropdownMenuGroup>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger><Grip />Blur</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                              <DropdownMenuSubContent>
+                                <DropdownMenuRadioItem value="blurLow" onClick={() => cameraEffectsRef.current?.setBackground({ blur: { strength: 'low' } })}>
+                                  <Ellipsis />Low
+                                </DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="blurMedium" onClick={() => cameraEffectsRef.current?.setBackground({ blur: { strength: 'medium' } })}>
+                                  <GripHorizontal />Medium
+                                </DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="blurHigh" onClick={() => cameraEffectsRef.current?.setBackground({ blur: { strength: 'high' } })}>
+                                  <Grip />High
+                                </DropdownMenuRadioItem>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenuSub>
+                          <DropdownMenuRadioItem value="image" onClick={() => cameraEffectsImageInputRef.current?.click()}>
+                            <input type="file" accept="image/*" ref={cameraEffectsImageInputRef} onChange={handleCameraEffectsFileSelection} style={{ display: 'none' }} />
+                            <Image />
+                            Image
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="video" onClick={() => cameraEffectsVideoInputRef.current?.click()}>
+                            <input type="file" accept="video/*" ref={cameraEffectsVideoInputRef} onChange={handleCameraEffectsFileSelection} style={{ display: 'none' }} />
+                            <SquarePlay />
+                            Video
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                          <DropdownMenuRadioItem value="none" onClick={() => cameraEffectsRef.current?.setBackground('none')}>
+                            <Ban />
+                            None
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuGroup>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
                   {/* Screen share */}
                   <Tooltip>
@@ -1022,6 +1135,6 @@ export default function App() {
         </Dialog>
 
       </TooltipProvider>
-    </ThemeProvider>
+    </ThemeProvider >
   )
 }
