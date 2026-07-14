@@ -986,7 +986,7 @@ export default function App() {
                           size="icon"
                           variant={isCameraOn ? "ghost" : "destructive"}
                           className={isScreenSharing ? "opacity-50" : ""}
-                          onClick={e => { isScreenSharing ? e.preventDefault() : toggleCamera() }}
+                          onClick={e => { if (isScreenSharing) { e.preventDefault(); return; } return toggleCamera() }}
                         />
                       }
                     >
